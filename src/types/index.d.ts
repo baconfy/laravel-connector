@@ -1,8 +1,11 @@
 export interface Config {
   baseUrl: string
+  headers?: Record<string, string>
+}
+
+export interface SanctumConfig extends Config {
   useCsrfToken?: boolean
   withCredentials?: boolean
-  headers?: Record<string, string>
 }
 
 export interface Response<T = any> {

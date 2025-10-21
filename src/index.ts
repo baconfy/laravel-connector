@@ -1,2 +1,4 @@
 export { Api, createApi } from './api'
-export type {Config, Response, RequestOptions, HttpMethod} from './types'
+export { SanctumApi, createSanctumApi } from './sanctum-api'
+
+export type {Config, SanctumConfig, Response, RequestOptions, HttpMethod} from './types'
