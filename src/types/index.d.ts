@@ -1,5 +1,6 @@
 export interface Config {
   baseUrl: string
+  useCsrfToken?: boolean
   withCredentials?: boolean
   headers?: Record<string, string>
 }

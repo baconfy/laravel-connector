@@ -3,12 +3,14 @@ import type {Config, HttpMethod, RequestOptions, Response} from './types'
 export class Api {
   private readonly baseUrl: string
   private csrfToken: string | null = null
+  private readonly useCsrfToken: boolean
   private readonly withCredentials: boolean
   private defaultHeaders: Record<string, string>
 
   constructor(config: Config) {
     this.baseUrl = config.baseUrl.replace(/\/$/, '')
     this.withCredentials = config.withCredentials ?? true
+    this.useCsrfToken = config.useCsrfToken ?? true
     this.defaultHeaders = config.headers ?? {}
   }
 
@@ -16,6 +18,7 @@ export class Api {
    * Request the CSRF token of Laravel Sanctum
    */
   private async getCsrfToken(): Promise<string | null> {
+    if (!this.useCsrfToken) return null
     if (this.csrfToken) return this.csrfToken
 
     try {
