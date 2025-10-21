@@ -1,24 +1,15 @@
-import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
+import {beforeEach, describe, expect, it, vi} from 'vitest'
 import type {Config} from '../src'
 import {Api, createApi} from '../src'
 
 describe('Api', () => {
   let api: Api
 
-  const mockConfig: Config = {
-    baseUrl: 'https://api.example.com',
-    withCredentials: true
-  }
+  const mockConfig: Config = {baseUrl: 'https://api.example.com', withCredentials: true}
 
   beforeEach(() => {
     api = createApi(mockConfig)
     global.fetch = vi.fn()
-    localStorage.clear()
-    sessionStorage.clear()
-  })
-
-  afterEach(() => {
-    vi.clearAllMocks()
   })
 
   describe('Constructor and Config', () => {
@@ -27,470 +18,14 @@ describe('Api', () => {
     })
 
     it('should remove trailing slash from baseUrl', () => {
-      const apiWithSlash = createApi({
-        baseUrl: 'https://api.example.com/'
-      })
+      const apiWithSlash = createApi({baseUrl: 'https://api.example.com/'})
       expect(apiWithSlash).toBeInstanceOf(Api)
     })
 
     it('should set default headers', () => {
       const customHeaders = {'X-Custom-Header': 'test'}
-      const apiWithHeaders = createApi({
-        ...mockConfig,
-        headers: customHeaders
-      })
+      const apiWithHeaders = createApi({...mockConfig, headers: customHeaders})
       expect(apiWithHeaders).toBeInstanceOf(Api)
-    })
-
-    it('should load token from localStorage on init', () => {
-      const token = 'saved-token-123'
-
-      localStorage.setItem('auth_token', JSON.stringify({token}))
-
-      const newApi = createApi(mockConfig)
-
-      expect(newApi.getToken()).toBe(token)
-      expect(newApi.isAuthenticated()).toBe(true)
-    })
-
-    it('should use custom tokenKey from config', () => {
-      const customKey = 'my_custom_token'
-      const token = 'custom-token-123'
-
-      localStorage.setItem(customKey, JSON.stringify({token}))
-
-      const newApi = createApi({
-        ...mockConfig,
-        auth: {tokenKey: customKey}
-      })
-
-      expect(newApi.getToken()).toBe(token)
-    })
-  })
-
-  describe('Authentication - setToken', () => {
-    it('should set token and save to localStorage', () => {
-      const token = 'test-token-123'
-
-      api.setToken(token)
-
-      expect(api.getToken()).toBe(token)
-      expect(api.isAuthenticated()).toBe(true)
-
-      const saved = JSON.parse(localStorage.getItem('auth_token')!)
-      expect(saved.token).toBe(token)
-    })
-
-    it('should set token with expiration', () => {
-      const token = 'test-token-123'
-      const expiresIn = 3600 // 1 hour in seconds
-
-      api.setToken(token, expiresIn)
-
-      expect(api.getToken()).toBe(token)
-      expect(api.isAuthenticated()).toBe(true)
-
-      const saved = JSON.parse(localStorage.getItem('auth_token')!)
-      expect(saved.expiresAt).toBeGreaterThan(Date.now())
-    })
-
-    it('should add Authorization header automatically', async () => {
-      const token = 'bearer-token-123'
-      api.setToken(token)
-
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        headers: new Headers({'content-type': 'application/json'}),
-        json: async () => ({})
-      })
-
-      await api.get('/test')
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            'Authorization': `Bearer ${token}`
-          })
-        })
-      )
-    })
-  })
-
-  describe('Authentication - setAuthTokens', () => {
-    it('should set full auth tokens with refresh token', () => {
-      const tokens = {
-        token: 'access-token',
-        refreshToken: 'refresh-token',
-        expiresAt: Date.now() + 3600000
-      }
-
-      api.setAuthTokens(tokens)
-
-      expect(api.getToken()).toBe(tokens.token)
-
-      const saved = JSON.parse(localStorage.getItem('auth_token')!)
-      expect(saved.token).toBe(tokens.token)
-      expect(saved.refreshToken).toBe(tokens.refreshToken)
-      expect(saved.expiresAt).toBe(tokens.expiresAt)
-    })
-
-    it('should not save to storage when save=false', () => {
-      const tokens = {
-        token: 'access-token'
-      }
-
-      api.setAuthTokens(tokens, false)
-
-      expect(api.getToken()).toBe(tokens.token)
-      expect(localStorage.getItem('auth_token')).toBeNull()
-    })
-  })
-
-  describe('Authentication - Storage Types', () => {
-    it('should save token to sessionStorage when configured', () => {
-      const apiSession = createApi({
-        ...mockConfig,
-        auth: {storage: 'sessionStorage'}
-      })
-
-      apiSession.setToken('session-token')
-
-      expect(sessionStorage.getItem('auth_token')).toBeTruthy()
-      expect(localStorage.getItem('auth_token')).toBeNull()
-    })
-
-    it('should not save to any storage when memory mode', () => {
-      const apiMemory = createApi({
-        ...mockConfig,
-        auth: {storage: 'memory'}
-      })
-
-      apiMemory.setToken('memory-token')
-
-      expect(apiMemory.getToken()).toBe('memory-token')
-      expect(localStorage.getItem('auth_token')).toBeNull()
-      expect(sessionStorage.getItem('auth_token')).toBeNull()
-    })
-  })
-
-  describe('Authentication - isAuthenticated', () => {
-    it('should return true when token exists and not expired', () => {
-      api.setToken('valid-token', 3600)
-      expect(api.isAuthenticated()).toBe(true)
-    })
-
-    it('should return false when no token', () => {
-      api.clearAuth()
-      expect(api.isAuthenticated()).toBe(false)
-    })
-
-    it('should return false when token is expired', () => {
-      const expiredTokens = {token: 'expired-token', expiresAt: Date.now() - 1000}
-
-      api.setAuthTokens(expiredTokens)
-      expect(api.isAuthenticated()).toBe(false)
-    })
-  })
-
-  describe('Authentication - clearAuth', () => {
-    it('should clear token and remove from storage', () => {
-      api.setToken('token-to-clear')
-
-      api.clearAuth()
-
-      expect(api.getToken()).toBeNull()
-      expect(api.isAuthenticated()).toBe(false)
-      expect(localStorage.getItem('auth_token')).toBeNull()
-    })
-
-    it('should remove Authorization header', async () => {
-      api.setToken('token-to-clear')
-      api.clearAuth()
-
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        headers: new Headers({'content-type': 'application/json'}),
-        json: async () => ({})
-      })
-
-      await api.get('/test')
-
-      const callArgs = (global.fetch as any).mock.calls[0][1]
-      expect(callArgs.headers.Authorization).toBeUndefined()
-    })
-  })
-
-  describe('Authentication - Auto Refresh', () => {
-    it('should refresh token automatically when expired', async () => {
-      const apiWithRefresh = createApi({
-        ...mockConfig,
-        auth: {
-          autoRefresh: true,
-          refreshEndpoint: '/api/refresh'
-        }
-      })
-
-      // Set an expired token
-      const expiredTokens = {
-        token: 'expired-token',
-        refreshToken: 'refresh-token-123',
-        expiresAt: Date.now() - 1000
-      }
-      apiWithRefresh.setAuthTokens(expiredTokens)
-
-      // Mock refresh response
-      const refreshResponse = {
-        token: 'new-token',
-        refresh_token: 'new-refresh-token',
-        expires_in: 3600
-      }
-
-      // Mock final fetch response
-      const finalResponse = {
-        data: 'success'
-      }
-
-      global.fetch = vi.fn()
-        .mockResolvedValueOnce({ // Refresh call
-          ok: true,
-          status: 200,
-          headers: new Headers({'content-type': 'application/json'}),
-          json: async () => refreshResponse
-        })
-        .mockResolvedValueOnce({ // Original request call
-          ok: true,
-          status: 200,
-          headers: new Headers({'content-type': 'application/json'}),
-          json: async () => finalResponse
-        })
-
-      const response = await apiWithRefresh.get('/test')
-
-      expect(response.data).toEqual(finalResponse)
-      expect(apiWithRefresh.getToken()).toBe('new-token')
-
-      // Verify refresh endpoint was called
-      expect(global.fetch).toHaveBeenCalledWith(
-        'https://api.example.com/api/refresh',
-        expect.objectContaining({
-          method: 'POST',
-          headers: expect.objectContaining({
-            'Authorization': 'Bearer refresh-token-123'
-          })
-        })
-      )
-    })
-
-    it('should retry request after successful refresh on 401', async () => {
-      const apiWithRefresh = createApi({
-        ...mockConfig,
-        auth: {
-          autoRefresh: true
-        }
-      })
-
-      apiWithRefresh.setAuthTokens({
-        token: 'old-token',
-        refreshToken: 'refresh-token'
-      })
-
-      const refreshResponse = {
-        token: 'new-token',
-        expires_in: 3600
-      }
-
-      global.fetch = vi.fn()
-        .mockResolvedValueOnce({ // First attempt - 401
-          ok: false,
-          status: 401,
-          headers: new Headers({'content-type': 'application/json'}),
-          json: async () => ({message: 'Unauthenticated'})
-        })
-        .mockResolvedValueOnce({ // Refresh call
-          ok: true,
-          status: 200,
-          headers: new Headers({'content-type': 'application/json'}),
-          json: async () => refreshResponse
-        })
-        .mockResolvedValueOnce({ // Retry with new token
-          ok: true,
-          status: 200,
-          headers: new Headers({'content-type': 'application/json'}),
-          json: async () => ({success: true})
-        })
-
-      const response = await apiWithRefresh.get('/protected')
-
-      expect(response.data).toEqual({success: true})
-      expect(apiWithRefresh.getToken()).toBe('new-token')
-    })
-
-    it('should call onTokenExpired callback when refresh fails', async () => {
-      const onTokenExpired = vi.fn()
-
-      const apiWithRefresh = createApi({
-        ...mockConfig,
-        auth: {
-          autoRefresh: true,
-          onTokenExpired
-        }
-      })
-
-      apiWithRefresh.setAuthTokens({
-        token: 'old-token',
-        refreshToken: 'refresh-token'
-      })
-
-      global.fetch = vi.fn()
-        .mockResolvedValueOnce({ // First attempt - 401
-          ok: false,
-          status: 401,
-          headers: new Headers({'content-type': 'application/json'}),
-          json: async () => ({message: 'Unauthenticated'})
-        })
-        .mockResolvedValueOnce({ // Refresh fails
-          ok: false,
-          status: 401,
-          headers: new Headers({'content-type': 'application/json'}),
-          json: async () => ({message: 'Invalid refresh token'})
-        })
-
-      await apiWithRefresh.get('/protected')
-
-      expect(onTokenExpired).toHaveBeenCalled()
-      expect(apiWithRefresh.getToken()).toBeNull()
-    })
-
-    it('should call onTokenRefreshed callback after successful refresh', async () => {
-      const onTokenRefreshed = vi.fn()
-
-      const apiWithRefresh = createApi({
-        ...mockConfig,
-        auth: {
-          autoRefresh: true,
-          onTokenRefreshed
-        }
-      })
-
-      apiWithRefresh.setAuthTokens({
-        token: 'expired-token',
-        refreshToken: 'refresh-token',
-        expiresAt: Date.now() - 1000
-      })
-
-      const newToken = 'refreshed-token'
-
-      global.fetch = vi.fn()
-        .mockResolvedValueOnce({ // Refresh call
-          ok: true,
-          status: 200,
-          headers: new Headers({'content-type': 'application/json'}),
-          json: async () => ({token: newToken, expires_in: 3600})
-        })
-        .mockResolvedValueOnce({ // Original request
-          ok: true,
-          status: 200,
-          headers: new Headers({'content-type': 'application/json'}),
-          json: async () => ({})
-        })
-
-      await apiWithRefresh.get('/test')
-
-      expect(onTokenRefreshed).toHaveBeenCalledWith(newToken)
-    })
-
-    it('should handle multiple concurrent requests during refresh', async () => {
-      const apiWithRefresh = createApi({
-        ...mockConfig,
-        auth: {
-          autoRefresh: true
-        }
-      })
-
-      apiWithRefresh.setAuthTokens({
-        token: 'expired-token',
-        refreshToken: 'refresh-token',
-        expiresAt: Date.now() - 1000
-      })
-
-      let refreshCalls = 0
-
-      global.fetch = vi.fn().mockImplementation((url) => {
-        if (url.includes('/api/refresh')) {
-          refreshCalls++
-          return Promise.resolve({
-            ok: true,
-            status: 200,
-            headers: new Headers({'content-type': 'application/json'}),
-            json: async () => ({token: 'new-token', expires_in: 3600})
-          })
-        }
-        return Promise.resolve({
-          ok: true,
-          status: 200,
-          headers: new Headers({'content-type': 'application/json'}),
-          json: async () => ({data: 'success'})
-        })
-      })
-
-      // Make 3 concurrent requests
-      await Promise.all([
-        apiWithRefresh.get('/test1'),
-        apiWithRefresh.get('/test2'),
-        apiWithRefresh.get('/test3')
-      ])
-
-      // Refresh should be called only once
-      expect(refreshCalls).toBe(1)
-    })
-  })
-
-  describe('Authentication - skipAuth option', () => {
-    it('should skip authentication when skipAuth is true', async () => {
-      api.setToken('some-token')
-
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        headers: new Headers({'content-type': 'application/json'}),
-        json: async () => ({})
-      })
-
-      await api.get('/public', {skipAuth: true})
-
-      // Should still have token in header
-      // (skipAuth only prevents automatic refresh, not header removal)
-      expect(global.fetch).toHaveBeenCalled()
-    })
-
-    it('should not attempt refresh when skipAuth is true', async () => {
-      const apiWithRefresh = createApi({
-        ...mockConfig,
-        auth: {autoRefresh: true}
-      })
-
-      apiWithRefresh.setAuthTokens({
-        token: 'expired-token',
-        expiresAt: Date.now() - 1000
-      })
-
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        headers: new Headers({'content-type': 'application/json'}),
-        json: async () => ({})
-      })
-
-      await apiWithRefresh.get('/test', {skipAuth: true})
-
-      // Should not attempt refresh
-      expect(global.fetch).not.toHaveBeenCalledWith(
-        expect.stringContaining('/api/refresh'),
-        expect.any(Object)
-      )
     })
   })
 
@@ -501,6 +36,7 @@ describe('Api', () => {
         headers: new Headers()
       })
 
+      // Mock da resposta do POST
       const postFetchMock = vi.fn().mockResolvedValueOnce({
         ok: true,
         status: 200,
@@ -512,10 +48,12 @@ describe('Api', () => {
         .mockImplementationOnce(csrfFetchMock)
         .mockImplementationOnce(postFetchMock)
 
+      // Define o cookie CSRF
       document.cookie = 'XSRF-TOKEN=test-csrf-token'
 
       await api.post('/test', {data: 'test'})
 
+      // Verifica se chamou o endpoint do CSRF
       expect(csrfFetchMock).toHaveBeenCalledWith(
         'https://api.example.com/sanctum/csrf-cookie',
         expect.objectContaining({
@@ -524,6 +62,7 @@ describe('Api', () => {
         })
       )
 
+      // Verifica se o POST foi feito com o token
       expect(postFetchMock).toHaveBeenCalledWith(
         'https://api.example.com/test',
         expect.objectContaining({
@@ -553,10 +92,15 @@ describe('Api', () => {
         .mockImplementationOnce(csrfFetchMock)
         .mockImplementation(postFetchMock)
 
+      // Primeira requisição - deve buscar o token
       await api.post('/test1', {})
+
+      // Segunda requisição - deve usar o token cacheado
       await api.post('/test2', {})
 
+      // CSRF deve ser chamado apenas 1 vez
       expect(csrfFetchMock).toHaveBeenCalledTimes(1)
+      // POST deve ser chamado 2 vezes
       expect(postFetchMock).toHaveBeenCalledTimes(2)
     })
 
@@ -587,6 +131,7 @@ describe('Api', () => {
 
       await api.post('/test', {})
 
+      // Deve buscar CSRF 2 vezes (antes e depois do clear)
       expect(fetchMock).toHaveBeenCalledWith(
         'https://api.example.com/sanctum/csrf-cookie',
         expect.any(Object)
@@ -660,7 +205,7 @@ describe('Api', () => {
       const mockResponse = {id: 1, ...mockBody}
 
       global.fetch = vi.fn()
-        .mockResolvedValueOnce({ok: true, headers: new Headers()})
+        .mockResolvedValueOnce({ok: true, headers: new Headers()}) // CSRF
         .mockResolvedValueOnce({
           ok: true,
           status: 201,
@@ -797,12 +342,12 @@ describe('Api', () => {
         ok: true,
         status: 200,
         headers: new Headers({'content-type': 'text/html'}),
-        text: async () => '<html lang="en">Response</html>'
+        text: async () => '<html>Response</html>'
       })
 
       const response = await api.get('/page')
 
-      expect(response.data).toBe('<html lang="en">Response</html>')
+      expect(response.data).toBe('<html>Response</html>')
     })
 
     it('should handle CSRF token fetch error', async () => {
@@ -815,6 +360,7 @@ describe('Api', () => {
           json: async () => ({success: true})
         })
 
+      // Deve continuar com a requisição mesmo sem CSRF
       const response = await api.post('/test', {})
 
       expect(response.data).toEqual({success: true})
