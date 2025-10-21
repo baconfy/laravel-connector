@@ -60,7 +60,7 @@ if (res.data) {
 }
 
 // POST automatically fetches CSRF cookie from /sanctum/csrf-cookie and sends X-XSRF-TOKEN
-const created = await api.post<User>('/users', { name: 'Taylor' })
+const created = await api.post<User>('/users', { name: 'Renato' })
 if (created.errors) {
   console.error(created.errors)
 }
