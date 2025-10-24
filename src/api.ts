@@ -2,6 +2,7 @@ import {Config, HttpMethod, RequestOptions, Response} from "./types";
 
 export class Api {
   protected readonly baseUrl: string
+  protected readonly unwrap: boolean
   protected defaultHeaders: Record<string, string>
 
   /**
@@ -16,6 +17,7 @@ export class Api {
   constructor(config: Config) {
     this.baseUrl = config.baseUrl.replace(/\/$/, '')
     this.defaultHeaders = config.headers ?? {}
+    this.unwrap = config.unwrap ?? true
   }
 
   /**
@@ -79,7 +81,12 @@ export class Api {
         }
       }
 
-      return {data: data as T, errors: null, loading: false, status: response.status}
+      let finalData = data
+      if (this.unwrap && data && typeof data === 'object' && 'data' in data && Object.keys(data).length === 1) {
+        finalData = data.data
+      }
+
+      return {data: finalData as T, errors: null, loading: false, status: response.status}
     } catch (error) {
       return {data: null, errors: error instanceof Error ? error.message : 'Request error', loading: false, status: null}
     }
