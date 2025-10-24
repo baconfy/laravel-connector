@@ -17,6 +17,8 @@ export class SanctumApi extends Api {
 
     this.withCredentials = config.withCredentials ?? true
     this.useCsrfToken = config.useCsrfToken ?? true
+
+    this.getCsrfToken()
   }
 
   /**
