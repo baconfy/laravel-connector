@@ -1,7 +1,7 @@
 export interface Config {
   baseUrl: string
   headers?: Record<string, string>
-  unwrap: boolean
+  unwrap?: boolean
 }
 
 export interface SanctumConfig extends Config {
