@@ -2,6 +2,7 @@ import {Api} from "./api";
 import {HttpMethod, RequestOptions, Response, SanctumConfig} from "./types";
 
 export class SanctumApi extends Api {
+  private readonly csrfCookiePath: string | null = null
   private csrfToken: string | null = null
   private readonly useCsrfToken: boolean
   private readonly withCredentials: boolean
@@ -17,6 +18,7 @@ export class SanctumApi extends Api {
 
     this.withCredentials = config.withCredentials ?? true
     this.useCsrfToken = config.useCsrfToken ?? true
+    this.csrfCookiePath = config.csrfCookiePath ?? '/sanctum/csrf-cookie'
   }
 
   /**
@@ -33,7 +35,7 @@ export class SanctumApi extends Api {
     let token = null;
 
     try {
-      const response = await fetch(`${this.url}/sanctum/csrf-cookie`, {
+      const response = await fetch(`${this.url}${this.csrfCookiePath}`, {
         credentials: 'include',
         headers: {
           'Accept': 'application/json'
