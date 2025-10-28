@@ -28,7 +28,7 @@ export class SanctumApi extends Api {
    *
    * @return {Promise<string | null>} A promise that resolves to the CSRF token as a string if available, or null if it cannot be retrieved.
    */
-  private async getCsrfToken(): Promise<string | null> {
+  async getCsrfToken(): Promise<string | null> {
     if (!this.useCsrfToken) return null
     if (this.csrfToken) return this.csrfToken
 
