@@ -33,7 +33,7 @@ export class SanctumApi extends Api {
     let token = null;
 
     try {
-      const response = await fetch(`${this.baseUrl}/sanctum/csrf-cookie`, {
+      const response = await fetch(`${this.url}/sanctum/csrf-cookie`, {
         credentials: 'include',
         headers: {
           'Accept': 'application/json'

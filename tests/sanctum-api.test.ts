@@ -5,7 +5,7 @@ import {createSanctumApi, SanctumApi} from '../src'
 describe('SanctumApi (Laravel Specific)', () => {
   let api: SanctumApi
 
-  const mockConfig: SanctumConfig = {baseUrl: 'https://api.example.com'}
+  const mockConfig: SanctumConfig = {url: 'https://api.example.com'}
 
   beforeEach(() => {
     api = createSanctumApi(mockConfig)
@@ -34,7 +34,7 @@ describe('SanctumApi (Laravel Specific)', () => {
 
     it('should use same-origin when withCredentials is explicitly false', async () => {
       const noCredentialsSanctumApi = createSanctumApi({
-        baseUrl: 'https://api.example.com',
+        url: 'https://api.example.com',
         withCredentials: false
       })
 
@@ -144,7 +144,7 @@ describe('SanctumApi (Laravel Specific)', () => {
 
     it('should skip CSRF fetch when useCsrfToken is false', async () => {
       const apiNoCsrf = createSanctumApi({
-        baseUrl: 'https://api.example.com',
+        url: 'https://api.example.com',
         useCsrfToken: false
       })
 

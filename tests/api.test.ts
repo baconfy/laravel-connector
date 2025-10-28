@@ -5,7 +5,7 @@ import {Api, createApi} from '../src'
 describe('Api', () => {
   let api: Api
 
-  const mockConfig: Config = {baseUrl: 'https://api.example.com'}
+  const mockConfig: Config = {url: 'https://api.example.com'}
 
   beforeEach(() => {
     api = createApi(mockConfig)
@@ -18,7 +18,7 @@ describe('Api', () => {
     })
 
     it('should remove trailing slash from baseUrl', () => {
-      const apiWithSlash = createApi({baseUrl: 'https://api.example.com/'})
+      const apiWithSlash = createApi({url: 'https://api.example.com/'})
       expect(apiWithSlash).toBeInstanceOf(Api)
     })
 
@@ -169,7 +169,7 @@ describe('Api', () => {
   describe('Headers Management', () => {
     it('should include default headers in requests', async () => {
       const customApi = createApi({
-        baseUrl: 'https://api.example.com',
+        url: 'https://api.example.com',
         headers: {'X-Custom': 'value'}
       })
 

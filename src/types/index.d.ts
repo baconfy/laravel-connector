@@ -1,5 +1,7 @@
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
+
 export interface Config {
-  baseUrl: string
+  url: string
   headers?: Record<string, string>
   unwrap?: boolean
 }
@@ -19,5 +21,3 @@ export interface Response<T = any> {
 export interface RequestOptions extends RequestInit {
   params?: Record<string, any>
 }
-
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'

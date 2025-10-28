@@ -1,7 +1,7 @@
 import {Config, HttpMethod, RequestOptions, Response} from "./types";
 
 export class Api {
-  protected readonly baseUrl: string
+  protected readonly url: string
   protected readonly unwrap: boolean
   protected defaultHeaders: Record<string, string>
 
@@ -15,7 +15,7 @@ export class Api {
    * @return {void}
    */
   constructor(config: Config) {
-    this.baseUrl = config.baseUrl.replace(/\/$/, '')
+    this.url = config.url.replace(/\/$/, '')
     this.defaultHeaders = config.headers ?? {}
     this.unwrap = config.unwrap ?? true
   }
@@ -28,7 +28,7 @@ export class Api {
    * @return {string} The complete URL as a string with the constructed query parameters, if provided.
    */
   protected buildUrl(endpoint: string, params?: Record<string, any>): string {
-    const url = new URL(`${this.baseUrl}${endpoint}`)
+    const url = new URL(`${this.url}${endpoint}`)
 
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
