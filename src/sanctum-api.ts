@@ -1,18 +1,13 @@
-import {Api} from "./api";
-import {HttpMethod, RequestOptions, Response, SanctumConfig} from "./types";
+import {Api} from "./api.js";
+import {HttpMethod, RequestOptions, Response, SanctumConfig} from "./types/index.js";
 
 export class SanctumApi extends Api {
-  private readonly csrfCookiePath: string | null = null
   private csrfToken: string | null = null
+  private csrfPromise: Promise<string | null> | null = null
   private readonly useCsrfToken: boolean
   private readonly withCredentials: boolean
+  private readonly csrfCookiePath: string
 
-  /**
-   * Constructs a new instance of the class with the provided configuration.
-   *
-   * @param {SanctumConfig} config - The configuration object for initializing the instance.
-   * @return {void} This constructor does not return any value.
-   */
   constructor(config: SanctumConfig) {
     super(config)
 
@@ -22,68 +17,74 @@ export class SanctumApi extends Api {
   }
 
   /**
-   * Retrieves the CSRF token either from the cached value or by requesting it from the server.
-   * If the token is not already cached, it attempts to fetch the token from the `/sanctum/csrf-cookie` endpoint
-   * and extracts it from the browser's cookies.
+   * Retrieves the CSRF token lazily (only when needed)
+   * Can be called manually to warm up the session
+   * Uses a promise to prevent duplicate requests
    *
-   * @return {Promise<string | null>} A promise that resolves to the CSRF token as a string if available, or null if it cannot be retrieved.
+   * @returns Promise<string | null> The CSRF token or null if disabled/failed
    */
   async getCsrfToken(): Promise<string | null> {
     if (!this.useCsrfToken) return null
     if (this.csrfToken) return this.csrfToken
 
-    let token = null;
+    // If already fetching, return the existing promise
+    if (this.csrfPromise) {
+      return this.csrfPromise
+    }
 
-    try {
-      const response = await fetch(`${this.url}${this.csrfCookiePath}`, {
-        credentials: 'include',
-        headers: {
-          'Accept': 'application/json'
-        }
-      })
+    this.csrfPromise = (async () => {
+      try {
+        const response = await fetch(`${this.url}${this.csrfCookiePath}`, {
+          headers: {'Accept': 'application/json'},
+          credentials: 'include',
+        })
 
-      if (typeof document !== 'undefined' && document.cookie) {
-        const cookies = document.cookie.split(';')
-        const csrfCookie = cookies.find(c => c.trim().startsWith('XSRF-TOKEN='))
+        let token: string | null = null
 
-        if (csrfCookie) {
-          token = decodeURIComponent(csrfCookie.split('=')[1])
-        }
-      } else {
-        const setCookieHeader = response.headers.get('set-cookie')
+        if (typeof document !== 'undefined' && document.cookie) {
+          const cookies = document.cookie.split(';')
+          const csrfCookie = cookies.find(c => c.trim().startsWith('XSRF-TOKEN='))
 
-        if (setCookieHeader) {
-          const xsrfMatch = setCookieHeader.match(/XSRF-TOKEN=([^;]+)/)
-          if (xsrfMatch && xsrfMatch[1]) {
-            token = decodeURIComponent(xsrfMatch[1])
+          if (csrfCookie) {
+            token = decodeURIComponent(csrfCookie.split('=')[1])
+          }
+        } else {
+          const setCookieHeader = response.headers.get('set-cookie')
+
+          if (setCookieHeader) {
+            const xsrfMatch = setCookieHeader.match(/XSRF-TOKEN=([^;]+)/)
+
+            if (xsrfMatch && xsrfMatch[1]) {
+              token = decodeURIComponent(xsrfMatch[1])
+            }
           }
         }
+
+        if (token) {
+          this.csrfToken = token
+        }
+
+        return this.csrfToken
+      } catch (error) {
+        return null
+      } finally {
+        this.csrfPromise = null
       }
+    })()
 
-      if (token) this.csrfToken = token
-      return this.csrfToken
-
-    } catch (error) {
-      console.error('CSRF Token request error:', error)
-      return null
-    }
+    return this.csrfPromise
   }
 
   /**
-   * Clears the CSRF token by setting it to null.
-   *
-   * @return {void} No return value.
+   * Clears the CSRF token cache
    */
   clearCsrfToken(): void {
     this.csrfToken = null
+    this.csrfPromise = null
   }
 
   /**
-   * Sends an HTTP request to the specified endpoint with the provided options.
-   *
-   * @param {string} endpoint - The endpoint URL for the request.
-   * @param {RequestOptions} [options] - Additional options for the request, such as method, headers, body, and query parameters.
-   * @return {Promise<Response>} A promise that resolves to the response object containing data, errors, loading status, and HTTP status.
+   * Sends an HTTP request with Sanctum CSRF token
    */
   async request<T = any>(endpoint: string, options: RequestOptions = {}): Promise<Response<T>> {
     const method = (options.method?.toUpperCase() ?? 'GET') as HttpMethod
@@ -105,12 +106,6 @@ export class SanctumApi extends Api {
   }
 }
 
-/**
- * Creates and returns an instance of the SanctumApi class using the provided configuration.
- *
- * @param {SanctumConfig} config - The configuration object to initialize the Api instance.
- * @return {SanctumApi} A new instance of the Api class configured with the given settings.
- */
 export function createSanctumApi(config: SanctumConfig): SanctumApi {
   return new SanctumApi(config)
 }
