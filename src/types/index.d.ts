@@ -9,7 +9,7 @@ export interface Config {
 export interface SanctumConfig extends Config {
   useCsrfToken?: boolean
   withCredentials?: boolean
-  csrfCookiePath: string | null
+  csrfCookiePath?: string
 }
 
 export interface Response<T = any> {
