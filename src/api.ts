@@ -74,10 +74,10 @@ export class Api {
 
       if (!response.ok) {
         return {
-          data: null,
           errors: data?.errors || data?.message || data || 'Unknown error',
-          loading: false,
-          status: response.status
+          status: response.status,
+          success: false,
+          data: null
         }
       }
 
@@ -86,9 +86,9 @@ export class Api {
         finalData = data.data
       }
 
-      return {data: finalData as T, errors: null, loading: false, status: response.status}
+      return {data: finalData as T, errors: null, success: true, status: response.status}
     } catch (error) {
-      return {data: null, errors: error instanceof Error ? error.message : 'Request error', loading: false, status: null}
+      return {data: null, errors: error instanceof Error ? error.message : 'Request error', success: false, status: null}
     }
   }
 

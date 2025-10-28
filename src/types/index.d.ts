@@ -12,7 +12,7 @@ export interface SanctumConfig extends Config {
 export interface Response<T = any> {
   data: T | null
   errors: any
-  loading: boolean
+  success: boolean
   status: number | null
 }
 

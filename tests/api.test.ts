@@ -43,9 +43,9 @@ describe('Api', () => {
       const response = await api.get('/posts/1')
 
       expect(response.data).toEqual(mockData)
+      expect(response.success).toBe(true)
       expect(response.errors).toBeNull()
       expect(response.status).toBe(200)
-      expect(response.loading).toBe(false)
     })
 
     it('should add query parameters to GET request', async () => {
