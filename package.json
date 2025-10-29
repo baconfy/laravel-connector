@@ -1,6 +1,6 @@
 {
   "name": "laravel-connector",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "TypeScript HTTP client for Laravel APIs with Sanctum support",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

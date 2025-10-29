@@ -129,10 +129,12 @@ export class SanctumApi extends Api {
    *
    * @param {string} endpoint - The endpoint URL for the request
    * @param {RequestOptions} [options] - Additional options for the request
+   * @param retryCount
    * @return {Promise<Response<T>>} A promise that resolves to the response
    */
-  async request<T = any>(endpoint: string, options: RequestOptions = {}): Promise<Response<T>> {
+  async request<T = any>(endpoint: string, options: RequestOptions = {}, retryCount: number = 0): Promise<Response<T>> {
     const method = (options.method?.toUpperCase() ?? 'GET') as HttpMethod
+    const MAX_CSRF_RETRIES = 1
 
     // Fetch CSRF token for state-changing requests
     if (this.useCsrfToken && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
@@ -150,9 +152,10 @@ export class SanctumApi extends Api {
 
     const response = await super.request<T>(endpoint, updatedOptions)
 
-    // Clear CSRF token on 419 (CSRF token mismatch) or 401 (Unauthenticated)
-    if (response.status === 419 || response.status === 401) {
+    if ((response.status === 419 || response.status === 401) && retryCount < MAX_CSRF_RETRIES) {
       this.clearCsrfToken()
+
+      return this.request<T>(endpoint, options, retryCount + 1)
     }
 
     return response
