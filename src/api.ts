@@ -166,24 +166,15 @@ export class Api {
           }
         }
 
-        // Unwrap data if needed
         let finalData = data
         if (this.unwrap && data && typeof data === 'object' && 'data' in data && Object.keys(data).length === 1) {
           finalData = data.data
         }
 
-        const successResponse: Response<T> = {
-          data: finalData as T,
-          errors: null,
-          success: true,
-          status: response.status
-        }
+        const successResponse: Response<T> = {data: finalData as T, errors: null, success: true, status: response.status}
 
-        // Run response interceptors
         return await this.interceptors.runResponseInterceptors(successResponse)
-
       } catch (error) {
-        // Don't retry on abort errors
         if (isAbortError(error)) {
           return {
             data: null,
