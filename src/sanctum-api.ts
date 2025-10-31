@@ -45,11 +45,11 @@ export class SanctumApi extends Api {
       try {
         const response = await fetch(`${this.url}${this.csrfCookiePath}`, {
           method: 'GET',
+          credentials: 'include',
           headers: {
             'Accept': 'application/json',
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
           },
-          credentials: 'include'
         })
 
         if (!response.ok) {
@@ -67,7 +67,7 @@ export class SanctumApi extends Api {
             token = decodeURIComponent(csrfCookie.split('=')[1])
           }
         } else {
-          // Try to get token from Set-Cookie header (server environment)
+          // Try to get a token from Set-Cookie header (server environment)
           const setCookieHeader = response.headers.get('set-cookie')
 
           if (setCookieHeader) {
